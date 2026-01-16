@@ -3,7 +3,11 @@ import re
 
 def generate_outline(llm, title, idea, chapter_count, sections_per_chapter, meta, novel_config):
     """阶段 1：根据用户描述生成详细大纲"""
-    outline_file = f"{title}_outline.md"
+    outlines_dir = "outlines"
+    if not os.path.exists(outlines_dir):
+        os.makedirs(outlines_dir)
+    
+    outline_file = os.path.join(outlines_dir, f"{title}_outline.md")
     
     # 检查大纲是否已存在
     if os.path.exists(outline_file):
@@ -59,6 +63,12 @@ def generate_outline(llm, title, idea, chapter_count, sections_per_chapter, meta
         """
         
         batch_outline = llm.generate_content(prompt)
+        # 检查是否发生 LLM 错误
+        if batch_outline.startswith("⚠️"):
+            print(f"\n❌ [大纲生成失败] 第 {start_chapter} 章之后由于以下原因停止：")
+            print(batch_outline)
+            return None
+            
         full_outline += "\n" + batch_outline
         history_context = f"前 {end_chapter} 章大纲概要：\n" + batch_outline
 
@@ -148,11 +158,22 @@ def write_chapters_from_outline(llm, title, outline_text, meta, words_per_sectio
             """
             
             content = llm.generate_content(write_prompt)
+            # 检查是否发生 LLM 错误
+            if content.startswith("⚠️"):
+                print(f"\n❌ [正文创作失败] {chapter_title} 第 {j} 节由于以下原因停止：")
+                print(content)
+                return
+                
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(content)
                 
             # 生成并保存摘要，用于下一节的上下文
             history_summary = llm.generate_content(f"请用300字总结本节（{chapter_title} 第{j}节）关键进展：\n{content}")
+            if history_summary.startswith("⚠️"):
+                 # 如果摘要失败，记录警告但继续（或根据需要停止）
+                 print(f"⚠️ [摘要生成警告] {chapter_title} 第 {j} 节摘要失败，后续章节可能缺乏连贯性。")
+                 history_summary = "摘要获取失败。"
+            
             with open(summary_path, "w", encoding="utf-8") as fs:
                 fs.write(history_summary)
                 

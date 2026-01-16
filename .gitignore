@@ -33,23 +33,30 @@ config.yaml
 # Logs
 *.log
 
-# Project Specific - Generated Novels
-# This rule ignores top-level directories except for hidden ones and known source folders
-# You can also manually add novel names to ignore if preferred
+# Project Specific - Generated Novel Contents
+# Ignores generated novel text/chapters, but keeps core folders
 /*
 !/.git/
 !/.venv/
 !/core/
 !/drivers/
 !/tools/
+!/configs/
+/outlines/
 !/main.py
 !/config.example.yaml
 !/.gitignore
 !/README.md
 !/requirements.txt
 
+# Do not track specific configurations in configs/ except if intended
+# (Optional: uncomment if you only want to track config.example.yaml)
+# configs/*.yaml
+# !configs/your_base_config.yaml
+
 # Project Specific - Generated Outlines
-*_outline.md
+# (Now stored in outlines/ directory, you can ignore the whole dir or specific files)
+# outlines/*.md
 
 # IDEs
 .vscode/

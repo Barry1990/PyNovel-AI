@@ -22,6 +22,8 @@ PyNovel-AI 是一个基于 LLM（大语言模型）的自动化长篇小说创�
 
 ```text
 PyNovel-AI/
+├── configs/            # 存放各种小说的 YAML 配置文件
+├── outlines/           # 存放生成的小说详细大纲 (Markdown)
 ├── core/               # 核心逻辑
 │   ├── config.py       # 配置加载
 │   └── generator.py    # 大纲与正文生成引擎
@@ -32,6 +34,7 @@ PyNovel-AI/
 │   └── config_generator.py # AI 配置文件生成器
 ├── main.py             # 项目主入口
 ├── config.example.yaml # 配置文件模板
+├── requirements.txt    # 依赖说明
 └── .env                # (可选) 用于存储 API Key 的环境变量文件
 ```
 

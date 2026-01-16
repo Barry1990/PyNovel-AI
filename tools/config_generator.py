@@ -86,13 +86,17 @@ def generate_config_via_ai():
             print(f"AI 原始输出内容预览:\n{yaml_content[:200]}...")
             return
             
-        # 4. 保存文件 (统一保存到项目根目录)
+        # 4. 保存文件
         root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+        configs_dir = os.path.join(root_dir, "configs")
+        if not os.path.exists(configs_dir):
+            os.makedirs(configs_dir)
+            
         novel_title = parsed['novel'].get('title', 'untited_novel')
         filename = f"config.{novel_title}.yaml".replace(" ", "_")
         # 清理文件名中的非法字符
         filename = "".join([c for c in filename if c.isalnum() or c in "._-"]).strip()
-        save_path = os.path.join(root_dir, filename)
+        save_path = os.path.join(configs_dir, filename)
         
         with open(save_path, "w", encoding="utf-8") as f:
             f.write(yaml_content)

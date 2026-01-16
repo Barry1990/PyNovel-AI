@@ -45,4 +45,7 @@ class GeminiDriver(BaseDriver):
             # 处理 "The `response.parts` quick accessor requires a single candidate" 类似的错误
             return f"⚠️ [LLM 错误] 发生异常，可能是内容被拦截。详细信息: {str(e)}"
         except Exception as e:
-            return f"⚠️ [LLM 错误] 未知异常: {str(e)}"
+            error_msg = str(e)
+            if "404" in error_msg:
+                return f"⚠️ [LLM 错误] 找不到模型 '{self.model_name}' (404)。请检查 config.yaml 中的 model_name 是否正确，或代理是否支持该模型。"
+            return f"⚠️ [LLM 错误] 未知异常: {error_msg}"

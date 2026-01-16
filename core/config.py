@@ -29,15 +29,26 @@ except ImportError:
 
 def load_config(config_path="config.yaml"):
     root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    configs_dir = os.path.join(root_dir, "configs")
     
-    # 尝试直接读取
-    actual_path = config_path
-    if not os.path.exists(actual_path):
-        # 尝试从根目录寻找
-        actual_path = os.path.join(root_dir, config_path)
-        
-    if not os.path.exists(actual_path):
-        # 尝试在根目录下寻找备选的 config.example.yaml
+    # 路径搜索优先级：
+    # 1. 原始路径 (如果是绝对路径或相对当前目录存在)
+    # 2. configs/ 目录下
+    # 3. 根目录下
+    search_paths = [
+        config_path,
+        os.path.join(configs_dir, config_path),
+        os.path.join(root_dir, config_path)
+    ]
+    
+    actual_path = None
+    for p in search_paths:
+        if os.path.exists(p) and os.path.isfile(p):
+            actual_path = p
+            break
+            
+    if not actual_path:
+        # 兜底平衡：尝试在根目录下寻找备选的 config.example.yaml
         example_path = os.path.join(root_dir, "config.example.yaml")
         if os.path.exists(example_path):
             with open(example_path, "r", encoding="utf-8") as f:
@@ -66,7 +77,16 @@ def get_api_key(config):
 
 def select_config():
     """交互式选择配置文件"""
-    yaml_files = [f for f in os.listdir('.') if f.endswith('.yaml') and f != 'config.example.yaml']
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    configs_dir = os.path.join(root_dir, "configs")
+    
+    # 优先从 configs/ 目录读取，如果没有则从根目录查找
+    if os.path.exists(configs_dir):
+        yaml_files = [f for f in os.listdir(configs_dir) if f.endswith('.yaml')]
+        is_in_configs = True
+    else:
+        yaml_files = [f for f in os.listdir('.') if f.endswith('.yaml') and f != 'config.example.yaml']
+        is_in_configs = False
     
     if not yaml_files:
         print("未发现自定义配置文件，将使用默认模版 (config.example.yaml)")
@@ -82,9 +102,21 @@ def select_config():
         if 0 <= idx < len(yaml_files):
             selected_file = yaml_files[idx]
             print(f"已选择: {selected_file}")
-            return load_config(selected_file), selected_file
+            # 返回相对于 configs_dir 的路径或根路径
+            if is_in_configs:
+                return load_config(os.path.join("configs", selected_file)), selected_file
+            else:
+                return load_config(selected_file), selected_file
         else:
             print("选择无效，使用默认第一个。")
-            return load_config(yaml_files[0]), yaml_files[0]
+            default_file = yaml_files[0]
+            if is_in_configs:
+                return load_config(os.path.join("configs", default_file)), default_file
+            else:
+                return load_config(default_file), default_file
     except ValueError:
-        return load_config(yaml_files[0]), yaml_files[0]
+        default_file = yaml_files[0]
+        if is_in_configs:
+            return load_config(os.path.join("configs", default_file)), default_file
+        else:
+            return load_config(default_file), default_file
