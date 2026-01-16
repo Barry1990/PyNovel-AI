@@ -34,10 +34,17 @@ config.yaml
 *.log
 
 # Project Specific - Generated Novels
-# These folders usually contain the generated text and images
-*/
-!*/.git/
-!*/.venv/
+# This rule ignores top-level directories except for hidden ones and known source folders
+# You can also manually add novel names to ignore if preferred
+/*
+!/.git/
+!/.venv/
+!/core/
+!/drivers/
+!/main.py
+!/config.example.yaml
+!/.gitignore
+!/README.md
 
 # Project Specific - Generated Outlines
 *_outline.md

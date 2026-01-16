@@ -1,6 +1,8 @@
 # --- 基础配置 ---
-api_key: "YOUR_API_KEY_HERE"
-model_name: "gemini-3-flash-preview"
+provider: "gemini"               # 支持 "gemini", "openai" (及 OpenAI 兼容接口如 DeepSeek)
+api_key: ""    # 也可以从环境变量 GEMINI_API_KEY 或 OPENAI_API_KEY 获取
+base_url: ""                    # 仅 OpenAI/兼容接口需要，如 https://api.deepseek.com/v1
+model_name: "gemini-1.5-flash"  # 对应模型名称
 
 # --- 小说内容配置 ---
 novel:
