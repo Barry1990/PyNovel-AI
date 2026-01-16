@@ -11,8 +11,11 @@ def main():
     final_api_key = get_api_key(config)
     
     if not final_api_key:
-        env_var_name = "GEMINI_API_KEY" if provider == "gemini" else "OPENAI_API_KEY"
-        print(f"错误: 未找到 API Key。请在环境变量 {env_var_name} 或 config.yaml 中设置。")
+        env_vars = ["GEMINI_API_KEY", "GOOGLE_API_KEY"] if provider == "gemini" else ["OPENAI_API_KEY"]
+        print(f"错误: 未找到 API Key。")
+        print(f"已检查的环境变量: {', '.join(env_vars)}")
+        print(f"也检查了配置文件中的 'api_key' 字段。")
+        print(f"提示: 如果你刚刚设置了环境变量，请尝试重启终端或 IDE。你也可以在项目根目录创建一个 .env 文件来设置这些变量。")
         sys.exit(1)
 
     # 3. 初始化 LLM 驱动

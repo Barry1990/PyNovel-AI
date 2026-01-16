@@ -1,5 +1,9 @@
 import sys
 import os
+
+# 将项目根目录添加到 sys.path，确保可以导入 core 和 drivers 模块
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import yaml
 from core.config import load_config, get_api_key
 from drivers.factory import get_driver
@@ -11,7 +15,13 @@ def generate_config_via_ai():
     api_key = get_api_key(base_config)
     
     if not api_key:
-        print(f"请先在环境变量或 config.example.yaml 中设置 API Key 以运行生成器。")
+        env_vars = ["GEMINI_API_KEY", "GOOGLE_API_KEY"] if provider == "gemini" else ["OPENAI_API_KEY"]
+        print(f"\n错误: 未找到 API Key。")
+        print(f"已检查的环境变量: {', '.join(env_vars)}")
+        print(f"也检查了 config.example.yaml 中的 'api_key' 字段。")
+        print(f"提示: 如果你刚刚设置了环境变量，请尝试重启终端或 IDE。")
+        print(f"你也可以在项目根目录创建一个 .env 文件，内容如下：")
+        print(f"{env_vars[0]}=你的秘钥")
         return
 
     model_name = base_config.get("model_name", "gemini-1.5-flash" if provider == "gemini" else "gpt-3.5-turbo")
@@ -45,10 +55,11 @@ def generate_config_via_ai():
 {template}
 
 【要求】:
-1. 请根据创意构思一个吸引人的标题。
-2. 详细填充 `details` 部分，包括女主、男主、反派的设定，背景冲突等。
+1. 请根据创意构思一个吸引人的标题，并确定贴切的题材类型（Genre）。
+2. **重点**：详细填充 `details` 部分。模板中的“角色设定”、“背景设定”等仅为参考。请根据小说题材自由发挥，增加更有深度和专业性的维度。
+   - 例如：如果是职场类，可以增加“核心职场规则”、“主角的技术专长”；如果是奇幻类，可以增加“力量体系”、“地域文化”；如果是悬疑类，可以增加“关键反面细节”、“叙述性诡计预设”等。
 3. 文风和基调要契合创意。
-4. 只输出 YAML 内容，不要有任何 Markdown 包裹或其他解释文字。
+4. **输出格式**：只输出标准的 YAML 内容。确保缩进正确，不需要 Markdown 代码块包裹，不要包含任何前导或后随的解释文字。
 """
 
     print("正在通过 AI 构思配置文件，请稍候...")
@@ -61,15 +72,16 @@ def generate_config_via_ai():
         # 尝试验证 YAML 格式
         parsed = yaml.safe_load(yaml_content)
         
-        # 4. 保存文件
+        # 4. 保存文件 (统一保存到项目根目录)
+        root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
         filename = f"config.{parsed['novel']['title']}.yaml".replace(" ", "_")
-        # 移除非法文件名字符
         filename = "".join([c for c in filename if c.isalpha() or c.isdigit() or c in "._-"]).strip()
+        save_path = os.path.join(root_dir, filename)
         
-        with open(filename, "w", encoding="utf-8") as f:
+        with open(save_path, "w", encoding="utf-8") as f:
             f.write(yaml_content)
         
-        print(f"\n生成成功！配置文件已保存至: {filename}")
+        print(f"\n生成成功！配置文件已保存至: {save_path}")
         print("现在你可以运行 main.py 并选择这个文件来开始创作了。")
         
     except Exception as e:
