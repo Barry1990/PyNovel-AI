@@ -2,13 +2,20 @@ from .base import BaseDriver
 import sys
 
 class GeminiDriver(BaseDriver):
-    def __init__(self, api_key, model_name):
+    def __init__(self, api_key, model_name, base_url=None):
         self.model_name = model_name
         try:
             import google.generativeai as genai
             from google.generativeai.types import HarmCategory, HarmBlockThreshold
             
-            genai.configure(api_key=api_key)
+            # 配置 API
+            # 如果提供了 base_url (国内代理)，则通过 client_options 设置 api_endpoint
+            if base_url:
+                # 兼容性处理：如果用户填写的 URL 包含 http，则尝试提取或是直接使用
+                # genai.configure 的 client_options 接受 api_endpoint
+                genai.configure(api_key=api_key, client_options={'api_endpoint': base_url})
+            else:
+                genai.configure(api_key=api_key)
             
             # 默认安全设置：尽可能减少拦截，适合创意写作
             self.safety_settings = {

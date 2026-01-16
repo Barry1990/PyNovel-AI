@@ -42,7 +42,13 @@ PyNovel-AI/
 确保安装了 Python 3.8+，并安装依赖：
 
 ```bash
-pip install -U google-generativeai pyyaml python-dotenv
+pip install -r requirements.txt
+```
+
+或者手动安装主要依赖：
+
+```bash
+pip install -U google-generativeai openai pyyaml python-dotenv
 ```
 
 ### 2. 配置 API Key
