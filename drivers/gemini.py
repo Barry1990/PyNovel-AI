@@ -1,5 +1,6 @@
 from .base import BaseDriver
 import sys
+from core.ai_logger import log_ai_interaction
 
 class GeminiDriver(BaseDriver):
     def __init__(self, api_key, model_name, base_url=None):
@@ -38,9 +39,13 @@ class GeminiDriver(BaseDriver):
             response = self.model.generate_content(prompt)
             # 检查响应是否包含结果（有些情况下可能被安全过滤器完全拦截）
             if not response.candidates:
-                return f"⚠️ [LLM 错误] 内容被安全拦截或生成失败。原因: {response.prompt_feedback}"
+                error_msg = f"⚠️ [LLM 错误] 内容被安全拦截或生成失败。原因: {response.prompt_feedback}"
+                log_ai_interaction(prompt, error_msg, getattr(response, 'usage_metadata', None))
+                return error_msg
             
-            return response.text
+            text = response.text
+            log_ai_interaction(prompt, text, getattr(response, 'usage_metadata', None))
+            return text
         except ValueError as e:
             # 处理 "The `response.parts` quick accessor requires a single candidate" 类似的错误
             return f"⚠️ [LLM 错误] 发生异常，可能是内容被拦截。详细信息: {str(e)}"

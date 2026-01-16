@@ -1,4 +1,5 @@
 from core.config import load_config, get_api_key, select_config
+import sys
 from core.generator import generate_outline, write_chapters_from_outline
 from drivers.factory import get_driver
 

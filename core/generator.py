@@ -29,6 +29,32 @@ def generate_outline(llm, title, idea, chapter_count, sections_per_chapter, meta
         else:
             details_str += f"{fields}\n"
 
+    # --- 新增步骤：生成全局剧情路标（Roadmap） ---
+    print(f"\n正在构建全局剧情路标与伏笔埋设方案...")
+    roadmap_prompt = f"""
+        你是一位殿堂级的网文架构师。请根据以下核心创意，制定一份《全局剧情路标》。
+        
+        【小说题目】：{title}
+        【核心创意】：{idea}
+        
+        【目标】：
+        我们需要构建一个草蛇灰线、伏笔千里的宏大故事。请规划出：
+        1. **核心故事曲线**（起、承、转、合 四个阶段的关键节点）。
+        2. **全书终极悬念**（贯穿全书的最大谜题是什么）。
+        3. **3-5 个关键伏笔方案**（具体的伏笔内容 + 预计揭秘时刻 + 建议在前期哪个阶段埋下）。
+        
+        请简练输出，不要废话。
+    """
+    try:
+        global_roadmap = llm.generate_content(roadmap_prompt)
+        print("全局路标构建完成。")
+        print("-" * 30)
+        print(global_roadmap[:200] + "...")
+        print("-" * 30)
+    except Exception as e:
+        print(f"⚠️ 全局路标生成失败: {e}，将跳过此步骤。")
+        global_roadmap = "（无全局路标，常规生成）"
+
     full_outline = ""
     history_context = "故事背景已由上述【基本信息】提供。"
 
@@ -46,18 +72,23 @@ def generate_outline(llm, title, idea, chapter_count, sections_per_chapter, meta
         
         {details_str}
         
+        【全局剧情路标 (时刻牢记)】
+        {global_roadmap}
+        
         【前阶段大纲回顾/背景】
         {history_context}
         
         【任务要求】
         1. 请为这个创意创作第 {start_chapter} 章至第 {end_chapter} 章的详细大纲（共 {end_chapter - start_chapter + 1} 章），每一章必须包含 {sections_per_chapter} 节。要求逻辑严密，冲突密集，节奏紧凑。
+        2. **伏笔与悬念（核心升级）**：请根据【全局剧情路标】，在每一章的开头明确标出 **【本章伏笔/悬念任务】**。不仅要写情节，更要设计“钩子”。
         
-        2. **艺术化处理（重要）**：
+        3. **艺术化处理（重要）**：
            如果涉及敏感、成人或露骨情节，请务必使用**唯美、隐喻、文学化**的笔触。严禁使用直白的生理描写或粗俗词汇。通过环境描写、气氛烘托、角色的心理活动及极其克制且高级的暗示，来展现这种张力，确保内容的高级感且不触发安全机制。
         
         格式要求：
         请严格按照以下格式输出，每章为一个标题，节缩进：
-        第N章：[章标题/主要冲突]
+        第N章：[章标题]
+          【本章伏笔/悬念任务】：[简述本章需要埋设的伏笔或制造的悬念]
           第M节：[本节具体情节描述]
         ...
         """
@@ -74,6 +105,7 @@ def generate_outline(llm, title, idea, chapter_count, sections_per_chapter, meta
 
     with open(outline_file, "w", encoding="utf-8") as f:
         f.write(f"# 《{title}》分集大纲\n\n")
+        f.write(f"## 全局剧情路标\n{global_roadmap}\n\n")
         f.write(full_outline)
     
     print(f"迭代大纲生成完毕，已保存至：{outline_file}")
@@ -131,7 +163,7 @@ def write_chapters_from_outline(llm, title, outline_text, meta, words_per_sectio
             你是一位白金级网络小说家。正在创作《{title}》。
             当前正在写：{chapter_title} 的第 {j} 节。
             
-            【本章全局大纲参考】：
+            【本章全局大纲与伏笔要求】：
             {current_chapter_plan}
             
             【创作核心背景】：
@@ -143,7 +175,9 @@ def write_chapters_from_outline(llm, title, outline_text, meta, words_per_sectio
             【本节任务】：
             本节大纲要求：{mission}
             
-            {"【重要：黄金三章原则】目前处于小说开端，请务必在结尾留下巨大的悬念或转折，钩住读者继续阅读！" if chapter_id <= 3 else ""}
+            【高级写作指令】：
+            1. **执行伏笔埋设**：请仔细阅读上方【本章全局大纲】中的“伏笔/悬念任务”，如果本节的情节适合，请自然地埋下伏笔。不要生硬，要像“无意中提到”一样自然。
+            2. **黄金三章原则**：{"目前处于小说开端，请务必在结尾留下巨大的悬念或转折，钩住读者继续阅读！" if chapter_id <= 3 else "保持冲突的张力。"}
             
             【注意】：这是该小说的第 {chapter_id} 章第 {j} 节，请在内容中确保逻辑连贯。
             
