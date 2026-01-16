@@ -12,6 +12,7 @@ PyNovel-AI 是一个基于 LLM（大语言模型）的自动化长篇小说创�
   - 每创作完一个小节，系统会自动生成并保存该节的**摘要（Summary）**。
   - 续写时，系统会读取前文摘要作为 LLM 的背景参考，保证故事逻辑的连贯性，同时节省 Token。
 - **AI 驱动的配置文件生成**：提供 `config_generator.py` 工具，只需提供简单想法，AI 即可为你生成完整的角色、背景及风格设定。
+- **AI 小说灵感生成器**：提供 `inspiration_generator.py` 工具，可随机或指定题材生成多个小说灵感（包含标题、核心梗、大纲等），打破创作瓶颈。
 - **针对创作優化的安全设置**：
   - 特别针对 Gemini 驱动进行了优化，默认开启宽松的安全阈值（`BLOCK_NONE`），适合创意文学创作。
   - 内置“去敏感化”提示策略，通过文学化叙术规避 AI 的硬性拦截。
@@ -31,7 +32,9 @@ PyNovel-AI/
 │   ├── base.py         # 驱动基类
 │   └── gemini.py       # Gemini 驱动实现
 ├── tools/              # 辅助工具
-│   └── config_generator.py # AI 配置文件生成器
+│   ├── config_generator.py     # AI 配置文件生成器
+│   └── inspiration_generator.py # AI 小说灵感生成器
+├── inspirations/       # 存放生成的灵感列表
 ├── main.py             # 项目主入口
 ├── config.example.yaml # 配置文件模板
 ├── requirements.txt    # 依赖说明
@@ -60,7 +63,15 @@ pip install -U google-generativeai openai pyyaml python-dotenv
 - 在项目根目录创建 `.env` 文件：`GEMINI_API_KEY=你的KEY`
 - 或者在运行程序时根据提示输入。
 
-### 3. 生成小说配置
+### 3. (可选) 获取灵感
+
+如果你暂时没有具体的想法，可以使用灵感生成器：
+```bash
+python tools/inspiration_generator.py
+```
+输入你感兴趣的题材（或者留空随机），AI 会为你生成一批带有核心梗和简要大纲的灵感。你可以从中挑选一个，作为下一步配置生成的输入。
+
+### 4. 生成小说配置
 
 运行 AI 配置生成器：
 ```bash
@@ -68,7 +79,7 @@ python tools/config_generator.py
 ```
 根据提示输入你的小说创意（例如：“一个关于星际航行与禁忌之恋的故事”），系统会为你生成一个类似 `config.小说名称.yaml` 的文件。
 
-### 4. 开始创作
+### 5. 开始创作
 
 运行主程序：
 ```bash
