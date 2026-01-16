@@ -46,6 +46,7 @@ config.yaml
 !/config.example.yaml
 !/.gitignore
 !/README.md
+!/requirements.txt
 
 # Project Specific - Generated Outlines
 *_outline.md
