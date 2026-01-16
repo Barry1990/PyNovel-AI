@@ -58,24 +58,40 @@ def generate_config_via_ai():
 1. 请根据创意构思一个吸引人的标题，并确定贴切的题材类型（Genre）。
 2. **重点**：详细填充 `details` 部分。模板中的“角色设定”、“背景设定”等仅为参考。请根据小说题材自由发挥，增加更有深度和专业性的维度。
    - 例如：如果是职场类，可以增加“核心职场规则”、“主角的技术专长”；如果是奇幻类，可以增加“力量体系”、“地域文化”；如果是悬疑类，可以增加“关键反面细节”、“叙述性诡计预设”等。
-3. 文风和基调要契合创意。
-4. **输出格式**：只输出标准的 YAML 内容。确保缩进正确，不需要 Markdown 代码块包裹，不要包含任何前导或后随的解释文字。
+3. **安全与创意平衡（针对成人/情感题材）**：如果创意涉及成人、情色或高度敏感的情感题材，请务必执行以下“去敏感化”策略：
+   - **禁止使用**：直接的器官名称、露骨的生理动作描述、粗俗的俚语。
+   - **推荐使用**：文学化的比喻、环境氛围的侧面烘托、人物心理的深度挖掘、唯美的艺术化表达。
+   - **目标**：生成一个既能体现原创意韵味，又能够在文学艺术层面上优雅、得体，且不会触发 AI 硬性安全拦截的配置文件。
+4. 文风和基调要契合创意。
+5. **输出格式**：只输出标准的 YAML 内容。确保缩进正确，不需要 Markdown 代码块包裹，不要包含任何前导或后随的解释文字。
 """
 
     print("正在通过 AI 构思配置文件，请稍候...")
     try:
         yaml_content = llm.generate_content(prompt)
         
-        # 简单清理可能的 markdown 标签
+        # 1. 检查是否是驱动返回的错误信息
+        if yaml_content.startswith("⚠️"):
+            print(f"\nLLM 生成失败: {yaml_content}")
+            return
+
+        # 2. 简单清理可能的 markdown 标签
         yaml_content = yaml_content.replace("```yaml", "").replace("```", "").strip()
         
-        # 尝试验证 YAML 格式
+        # 3. 尝试验证 YAML 格式
         parsed = yaml.safe_load(yaml_content)
         
+        if not isinstance(parsed, dict) or 'novel' not in parsed:
+            print("\n错误: AI 返回的内容不是有效的配置文件格式。")
+            print(f"AI 原始输出内容预览:\n{yaml_content[:200]}...")
+            return
+            
         # 4. 保存文件 (统一保存到项目根目录)
         root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-        filename = f"config.{parsed['novel']['title']}.yaml".replace(" ", "_")
-        filename = "".join([c for c in filename if c.isalpha() or c.isdigit() or c in "._-"]).strip()
+        novel_title = parsed['novel'].get('title', 'untited_novel')
+        filename = f"config.{novel_title}.yaml".replace(" ", "_")
+        # 清理文件名中的非法字符
+        filename = "".join([c for c in filename if c.isalnum() or c in "._-"]).strip()
         save_path = os.path.join(root_dir, filename)
         
         with open(save_path, "w", encoding="utf-8") as f:
