@@ -1,11 +1,10 @@
-import sys
-from core.config import load_config, get_api_key
+from core.config import load_config, get_api_key, select_config
 from core.generator import generate_outline, write_chapters_from_outline
 from drivers.factory import get_driver
 
 def main():
-    # 1. 加载配置
-    config = load_config()
+    # 1. 选择并加载配置
+    config, config_file = select_config()
     
     # 2. 获取 API Key 和 Provider
     provider = config.get("provider", "gemini").lower()

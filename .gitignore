@@ -41,6 +41,7 @@ config.yaml
 !/.venv/
 !/core/
 !/drivers/
+!/tools/
 !/main.py
 !/config.example.yaml
 !/.gitignore
