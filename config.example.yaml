@@ -15,7 +15,7 @@ novel:
   sections_per_chapter: 3
   words_per_section: 3000
   genre: "现代恋爱言情"
-  batch_size: 2
+  batch_size: 10
   # --- 详细设定 ---
   details:
     角色设定:
