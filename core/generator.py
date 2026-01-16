@@ -3,6 +3,16 @@ import re
 
 def generate_outline(llm, title, idea, chapter_count, sections_per_chapter, meta, novel_config):
     """阶段 1：根据用户描述生成详细大纲"""
+    outline_file = f"{title}_outline.md"
+    
+    # 检查大纲是否已存在
+    if os.path.exists(outline_file):
+        print(f"\n检测到大纲文件已存在: {outline_file}")
+        choice = input("是否直接使用已有大纲并进入创作阶段？(y: 使用已有 / n: 重新生成): ").strip().lower()
+        if choice == 'y':
+            with open(outline_file, "r", encoding="utf-8") as f:
+                return f.read()
+
     batch_size = novel_config.get("batch_size", 10)
     print(f"\n正在为你分阶段构思《{title}》的 {chapter_count} 章 (每章 {sections_per_chapter} 节) 大纲...")
     
@@ -52,11 +62,11 @@ def generate_outline(llm, title, idea, chapter_count, sections_per_chapter, meta
         full_outline += "\n" + batch_outline
         history_context = f"前 {end_chapter} 章大纲概要：\n" + batch_outline
 
-    with open(f"{title}_outline.md", "w", encoding="utf-8") as f:
+    with open(outline_file, "w", encoding="utf-8") as f:
         f.write(f"# 《{title}》分集大纲\n\n")
         f.write(full_outline)
     
-    print(f"迭代大纲生成完毕，已保存至：{title}_outline.md")
+    print(f"迭代大纲生成完毕，已保存至：{outline_file}")
     return full_outline
 
 def write_chapters_from_outline(llm, title, outline_text, meta, words_per_section):
@@ -90,14 +100,31 @@ def write_chapters_from_outline(llm, title, outline_text, meta, words_per_sectio
             continue
         
         sections = re.findall(r"第\d+节：(.*)", block)
+        current_chapter_plan = block.strip() # 提取本章的完整大纲内容作为局部上下文
+        
         for j, mission in enumerate(sections, 1):
+            file_path = os.path.join(chapter_dir, f"第{j:02d}节.txt")
+            summary_path = os.path.join(chapter_dir, f"第{j:02d}节_summary.txt")
+            
+            # 断点续传检查
+            if os.path.exists(file_path):
+                print(f"检测到 {chapter_title} - 第 {j} 节 已存在，自动跳过。")
+                # 尝试加载历史摘要以维持后续章节的连贯性
+                if os.path.exists(summary_path):
+                    with open(summary_path, "r", encoding="utf-8") as fs:
+                        history_summary = fs.read()
+                continue
+
             print(f"正在根据大纲创作 {chapter_title} - 第 {j} 节...")
             
             write_prompt = f"""
             你是一位白金级网络小说家。正在创作《{title}》。
             当前正在写：{chapter_title} 的第 {j} 节。
             
-            【创作核心背景】
+            【本章全局大纲参考】：
+            {current_chapter_plan}
+            
+            【创作核心背景】：
             {details_str}
             
             【前情回顾】：
@@ -121,9 +148,12 @@ def write_chapters_from_outline(llm, title, outline_text, meta, words_per_sectio
             """
             
             content = llm.generate_content(write_prompt)
-            file_path = os.path.join(chapter_dir, f"第{j:02d}节.txt")
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(content)
                 
+            # 生成并保存摘要，用于下一节的上下文
             history_summary = llm.generate_content(f"请用300字总结本节（{chapter_title} 第{j}节）关键进展：\n{content}")
+            with open(summary_path, "w", encoding="utf-8") as fs:
+                fs.write(history_summary)
+                
             print(f"第 {chapter_id} 章第 {j} 节完成。")
