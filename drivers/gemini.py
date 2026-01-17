@@ -31,7 +31,7 @@ class GeminiDriver(BaseDriver):
                 safety_settings=self.safety_settings
             )
         except ImportError:
-            print("错误: 缺少 google-generativeai 库。请运行 'pip install google-generativeai'。")
+            print("错误: 缺少 google-generativeai 库。请运行 'pip install google-generativeai' 进行安装。")
             sys.exit(1)
 
     def generate_content(self, prompt: str) -> str:
@@ -48,7 +48,8 @@ class GeminiDriver(BaseDriver):
             return text
         except ValueError as e:
             # 处理 "The `response.parts` quick accessor requires a single candidate" 类似的错误
-            return f"⚠️ [LLM 错误] 发生异常，可能是内容被拦截。详细信息: {str(e)}"
+            # 翻译为中文提示
+            return f"⚠️ [LLM 错误] 发生异常，可能是内容被拦截。原始错误: {str(e)}"
         except Exception as e:
             error_msg = str(e)
             if "404" in error_msg:

@@ -22,7 +22,7 @@ def log_ai_interaction(prompt, response_text, usage_metadata=None):
         
         now_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        usage_str = "Unknown"
+        usage_str = "未知"
         if usage_metadata:
              try:
                  # 兼容 Gemini 的 usage_metadata 对象
@@ -30,13 +30,13 @@ def log_ai_interaction(prompt, response_text, usage_metadata=None):
                      p_tokens = usage_metadata.prompt_token_count
                      r_tokens = usage_metadata.candidates_token_count
                      t_tokens = usage_metadata.total_token_count
-                     usage_str = f"Prompt: {p_tokens}, Response: {r_tokens}, Total: {t_tokens}"
+                     usage_str = f"提问(Prompt): {p_tokens}, 回答(Response): {r_tokens}, 总计(Total): {t_tokens}"
                  # 兼容 OpenAI 的 usage 对象
                  elif hasattr(usage_metadata, 'prompt_tokens'):
                      p_tokens = usage_metadata.prompt_tokens
                      r_tokens = usage_metadata.completion_tokens
                      t_tokens = usage_metadata.total_tokens
-                     usage_str = f"Prompt: {p_tokens}, Response: {r_tokens}, Total: {t_tokens}"
+                     usage_str = f"提问(Prompt): {p_tokens}, 回答(Response): {r_tokens}, 总计(Total): {t_tokens}"
                  else:
                      usage_str = str(usage_metadata)
              except:
@@ -44,15 +44,15 @@ def log_ai_interaction(prompt, response_text, usage_metadata=None):
 
         log_content = f"""
 [{now_time}]
-==================== REQUEST ====================
+==================== 请求内容 (REQUEST) ====================
 {prompt}
 
-==================== RESPONSE ===================
+==================== 响应内容 (RESPONSE) ===================
 {response_text}
 
-==================== USAGE ======================
+==================== 用量统计 (USAGE) ======================
 Tokens: {usage_str}
-=================================================
+============================================================
 """
         with open(log_file, "a", encoding="utf-8") as f:
             f.write(log_content)

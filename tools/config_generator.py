@@ -5,44 +5,80 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import yaml
-from core.config import load_config, get_api_key
+from core.config import load_config, get_llm_config
 from drivers.factory import get_driver
 
-def generate_config_via_ai():
+def generate_random_idea(llm):
+    """使用 LLM 生成一个随机的小说创意"""
+    print("正在随机构思一个新的小说创意...")
+    prompt = """
+    请构思一个新颖、有趣的网络小说核心创意。
+    
+    要求：
+    1. 题材不限（可以是玄幻、都市、科幻、历史、悬疑等），但要足够吸引人。
+    2. 包含核心冲突、独特设定和主角目标。
+    3. 字数控制在 100 字以内。
+    4. 直接输出创意内容，不要标题，不要解释。
+    """
+    try:
+        idea = llm.generate_content(prompt)
+        print(f"随机创意已生成: {idea.strip()}")
+        return idea.strip()
+    except Exception as e:
+        print(f"随机创意生成失败: {e}")
+        return "一个关于人工智能自我觉醒并拯救人类的故事。"
+
+def generate_config_via_ai(idea=None, model_name=None, auto_save=False):
     # 1. 加载基础配置以初始化驱动
     base_config = load_config("config.example.yaml")
-    provider = base_config.get("provider", "gemini").lower()
-    api_key = get_api_key(base_config)
+    
+    llm_config = get_llm_config(base_config)
+    provider = llm_config['provider']
+    api_key = llm_config['api_key']
+    base_url = llm_config['base_url']
     
     if not api_key:
         env_vars = ["GEMINI_API_KEY", "GOOGLE_API_KEY"] if provider == "gemini" else ["OPENAI_API_KEY"]
         print(f"\n错误: 未找到 API Key。")
         print(f"已检查的环境变量: {', '.join(env_vars)}")
-        print(f"也检查了 config.example.yaml 中的 'api_key' 字段。")
-        print(f"提示: 如果你刚刚设置了环境变量，请尝试重启终端或 IDE。")
-        print(f"你也可以在项目根目录创建一个 .env 文件，内容如下：")
-        print(f"{env_vars[0]}=你的秘钥")
-        return
+        print(f"提示: 请检查项目根目录下的 .env 文件配置。")
+        return None
 
-    model_name = base_config.get("model_name", "gemini-1.5-flash" if provider == "gemini" else "gpt-3.5-turbo")
-    base_url = base_config.get("base_url")
-    
+    # 如果没有指定 model_name，使用配置/Env 中的值
+    if not model_name:
+        model_name = llm_config['model_name']
+        
     try:
         llm = get_driver(provider, api_key, model_name, base_url)
     except Exception as e:
         print(f"加载驱动失败: {e}")
-        return
+        return None
 
     # 2. 获取用户创意
-    print("\n--- AI 配置文件生成器 ---")
-    idea = input("请输入你的小说核心创意或简单描述: ").strip()
     if not idea:
-        print("创意不能为空。")
-        return
+        if auto_save:
+            idea = generate_random_idea(llm)
+        else:
+            print("\n--- AI 配置文件生成器 ---")
+            user_input = input("请输入你的小说核心创意或简单描述 (直接回车将随机生成): ").strip()
+            if user_input:
+                idea = user_input
+            else:
+                idea = generate_random_idea(llm)
+
+    if not idea:
+        print("创意获取失败。")
+        return None
 
     # 3. 构造 Prompt
-    with open("config.example.yaml", "r", encoding="utf-8") as f:
-        template = f.read()
+    try:
+        with open("config.example.yaml", "r", encoding="utf-8") as f:
+            template = f.read()
+    except FileNotFoundError:
+        # Fallback path logic just in case running from wrong dir
+        template_path = os.path.join(os.path.dirname(__file__), '..', 'config.example.yaml')
+        with open(template_path, "r", encoding="utf-8") as f:
+            template = f.read()
 
     prompt = f"""
 你是一位资深的网络小说策划。请根据以下创意，生成一个完整的小说配置文件。
@@ -73,7 +109,7 @@ def generate_config_via_ai():
         # 1. 检查是否是驱动返回的错误信息
         if yaml_content.startswith("⚠️"):
             print(f"\nLLM 生成失败: {yaml_content}")
-            return
+            return None
 
         # 2. 简单清理可能的 markdown 标签
         yaml_content = yaml_content.replace("```yaml", "").replace("```", "").strip()
@@ -84,7 +120,7 @@ def generate_config_via_ai():
         if not isinstance(parsed, dict) or 'novel' not in parsed:
             print("\n错误: AI 返回的内容不是有效的配置文件格式。")
             print(f"AI 原始输出内容预览:\n{yaml_content[:200]}...")
-            return
+            return None
             
         # 4. 保存文件
         root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -102,10 +138,17 @@ def generate_config_via_ai():
             f.write(yaml_content)
         
         print(f"\n生成成功！配置文件已保存至: {save_path}")
-        print("现在你可以运行 main.py 并选择这个文件来开始创作了。")
+        if not auto_save:
+            print("现在你可以运行 main.py 并选择这个文件来开始创作了。")
+        
+        return save_path
         
     except Exception as e:
         print(f"生成失败: {e}")
+        return None
+
+if __name__ == "__main__":
+    generate_config_via_ai()
 
 if __name__ == "__main__":
     generate_config_via_ai()

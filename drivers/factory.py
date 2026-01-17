@@ -8,4 +8,4 @@ def get_driver(provider, api_key, model_name, base_url=None):
     elif provider == "openai":
         return OpenAIDriver(api_key, model_name, base_url)
     else:
-        raise ValueError(f"不支持的 Provider: {provider}")
+        raise ValueError(f"不支持的 LLM 提供商 (Provider): {provider}")

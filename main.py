@@ -1,4 +1,4 @@
-from core.config import load_config, get_api_key, select_config
+from core.config import load_config, get_llm_config, select_config
 import sys
 from core.generator import generate_outline, write_chapters_from_outline
 from drivers.factory import get_driver
@@ -7,24 +7,25 @@ def main():
     # 1. 选择并加载配置
     config, config_file = select_config()
     
-    # 2. 获取 API Key 和 Provider
-    provider = config.get("provider", "gemini").lower()
-    final_api_key = get_api_key(config)
+    # 2. 获取 LLM 配置 (优先环境变量)
+    llm_config = get_llm_config(config)
+    provider = llm_config["provider"]
+    api_key = llm_config["api_key"]
+    model_name = llm_config["model_name"]
+    base_url = llm_config["base_url"]
     
-    if not final_api_key:
+    if not api_key:
         env_vars = ["GEMINI_API_KEY", "GOOGLE_API_KEY"] if provider == "gemini" else ["OPENAI_API_KEY"]
         print(f"错误: 未找到 API Key。")
+        print(f"配置文件: {config_file}")
         print(f"已检查的环境变量: {', '.join(env_vars)}")
         print(f"也检查了配置文件中的 'api_key' 字段。")
-        print(f"提示: 如果你刚刚设置了环境变量，请尝试重启终端或 IDE。你也可以在项目根目录创建一个 .env 文件来设置这些变量。")
+        print(f"提示: 请检查项目根目录下的 .env 文件是否配置正确。")
         sys.exit(1)
 
     # 3. 初始化 LLM 驱动
-    model_name = config.get("model_name", "gemini-1.5-flash" if provider == "gemini" else "gpt-3.5-turbo")
-    base_url = config.get("base_url")
-    
     try:
-        llm = get_driver(provider, final_api_key, model_name, base_url)
+        llm = get_driver(provider, api_key, model_name, base_url)
     except Exception as e:
         print(f"初始化驱动失败: {e}")
         sys.exit(1)

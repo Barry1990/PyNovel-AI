@@ -58,22 +58,62 @@ def load_config(config_path="config.yaml"):
     with open(actual_path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
-def get_api_key(config):
-    provider = config.get("provider", "gemini").lower()
-    
-    # 按照用户要求，优先从环境变量获取
+def get_llm_config(config):
+    """
+    统一获取 LLM 相关的配置，环境变量优先级最高。
+    返回字典: {
+        'provider': str,
+        'api_key': str,
+        'model_name': str,
+        'base_url': str
+    }
+    """
+    # 1. Provider
+    # 优先环境变量 LLM_PROVIDER -> config['provider'] -> 默认 "gemini"
+    provider = os.getenv("LLM_PROVIDER") or config.get("provider", "gemini")
+    provider = provider.lower()
+
+    # 2. API Key
+    # 优先环境变量 -> config['api_key']
+    api_key = None
     if provider == "gemini":
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     else:
         api_key = os.getenv("OPENAI_API_KEY")
-        
-    # 如果环境变量没有，再看配置文件是否有设置且不是占位符
+
     if not api_key:
-        config_api_key = config.get("api_key")
-        if config_api_key and config_api_key.strip() and config_api_key != "YOUR_API_KEY_HERE":
-            api_key = config_api_key
-            
-    return api_key
+        config_key = config.get("api_key")
+        if config_key and config_key.strip() and config_key != "YOUR_API_KEY_HERE":
+            api_key = config_key
+
+    # 3. Base URL
+    # 优先环境变量 LLM_BASE_URL -> config['base_url']
+    base_url = os.getenv("LLM_BASE_URL") or config.get("base_url")
+
+    # 4. Model Name
+    # 优先环境变量 LLM_MODEL -> config['model_name'] -> 默认值
+    model_name = os.getenv("LLM_MODEL") or config.get("model_name")
+    if not model_name:
+        return {
+            "provider": provider,
+            "api_key": api_key,
+            "model_name": None,  # Explicitly No Default
+            "base_url": base_url
+        }
+
+    return {
+        "provider": provider,
+        "api_key": api_key,
+        "model_name": model_name,
+        "base_url": base_url
+    }
+
+def get_api_key(config):
+    """
+    Helper function to maintain backward compatibility temporarily, 
+    but logic is now delegated to get_llm_config
+    """
+    return get_llm_config(config)["api_key"]
 
 def select_config():
     """交互式选择配置文件"""

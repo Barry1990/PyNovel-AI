@@ -9,7 +9,7 @@ class OpenAIDriver(BaseDriver):
             import openai
             self.client = openai.OpenAI(api_key=api_key, base_url=base_url)
         except ImportError:
-            print("错误: 缺少 openai 库。请运行 'pip install openai'。")
+            print("错误: 缺少 openai 库。请运行 'pip install openai' 进行安装。")
             sys.exit(1)
 
     def generate_content(self, prompt: str) -> str:
