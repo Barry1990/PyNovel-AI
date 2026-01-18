@@ -50,6 +50,7 @@ config.yaml
 !/requirements.txt
 !/auto_runner.py
 !/.env.example
+!/.env
 !/tests/
 
 # Do not track specific configurations in configs/ except if intended
