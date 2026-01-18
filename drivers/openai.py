@@ -12,14 +12,21 @@ class OpenAIDriver(BaseDriver):
             print("错误: 缺少 openai 库。请运行 'pip install openai' 进行安装。")
             sys.exit(1)
 
-    def generate_content(self, prompt: str) -> str:
+    def generate_content(self, prompt: str, system_instruction: str = None) -> str:
         try:
+            messages = []
+            if system_instruction:
+                messages.append({"role": "system", "content": system_instruction})
+            messages.append({"role": "user", "content": prompt})
+
             response = self.client.chat.completions.create(
                 model=self.model_name,
-                messages=[{"role": "user", "content": prompt}]
+                messages=messages
             )
             content = response.choices[0].message.content
-            log_ai_interaction(prompt, content, response.usage)
+            # Log with system instruction if present
+            log_prompt = f"[System]: {system_instruction}\n[User]: {prompt}" if system_instruction else prompt
+            log_ai_interaction(log_prompt, content, response.usage)
             return content
         except Exception as e:
             error_msg = f"⚠️ [OpenAI 错误] {str(e)}"

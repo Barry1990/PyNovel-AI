@@ -34,17 +34,31 @@ class GeminiDriver(BaseDriver):
             print("错误: 缺少 google-generativeai 库。请运行 'pip install google-generativeai' 进行安装。")
             sys.exit(1)
 
-    def generate_content(self, prompt: str) -> str:
+    def generate_content(self, prompt: str, system_instruction: str = None) -> str:
         try:
-            response = self.model.generate_content(prompt)
+            # 如果提供了 system_instruction，我们需要重新实例化一个带有 instruction 的轻量级模型对象
+            # 这是一个客户端操作，开销很小
+            if system_instruction:
+                import google.generativeai as genai
+                current_model = genai.GenerativeModel(
+                    model_name=self.model_name,
+                    safety_settings=self.safety_settings,
+                    system_instruction=system_instruction
+                )
+            else:
+                current_model = self.model
+            
+            response = current_model.generate_content(prompt)
             # 检查响应是否包含结果（有些情况下可能被安全过滤器完全拦截）
             if not response.candidates:
                 error_msg = f"⚠️ [LLM 错误] 内容被安全拦截或生成失败。原因: {response.prompt_feedback}"
-                log_ai_interaction(prompt, error_msg, getattr(response, 'usage_metadata', None))
+                log_prompt = f"[System]: {system_instruction}\n[User]: {prompt}" if system_instruction else prompt
+                log_ai_interaction(log_prompt, error_msg, getattr(response, 'usage_metadata', None))
                 return error_msg
             
             text = response.text
-            log_ai_interaction(prompt, text, getattr(response, 'usage_metadata', None))
+            log_prompt = f"[System]: {system_instruction}\n[User]: {prompt}" if system_instruction else prompt
+            log_ai_interaction(log_prompt, text, getattr(response, 'usage_metadata', None))
             return text
         except ValueError as e:
             # 处理 "The `response.parts` quick accessor requires a single candidate" 类似的错误
