@@ -165,11 +165,15 @@ def write_chapters_from_outline(llm, title, outline_text, meta, words_per_sectio
     chapter_blocks = re.split(r"(第\d+章：.*)", outline_text)
     
     chapter_id = 0
+    chapter_title = ""
+    chapter_dir = "" # 初始化防止报错
+
     for block in chapter_blocks:
         if not block.strip():
             continue
             
-        if block.startswith("第"):
+        # 章节标题行
+        if block.strip().startswith("第") and "章：" in block:
             chapter_title = block.strip()
             chapter_id += 1
             chapter_dir = os.path.join(title, f"第{chapter_id:02d}章")
@@ -177,7 +181,15 @@ def write_chapters_from_outline(llm, title, outline_text, meta, words_per_sectio
                 os.makedirs(chapter_dir)
             continue
         
+        # 章节内容块（包含"第N节"）
         sections = re.findall(r"第\d+节：(.*)", block)
+        if not sections:
+            continue
+
+        if not chapter_dir:
+            print(f"⚠️ 跳过无法归属章节的大纲片段: {block[:50]}...")
+            continue
+
         current_chapter_plan = block.strip() # 提取本章的完整大纲内容作为局部上下文
         
         for j, mission in enumerate(sections, 1):

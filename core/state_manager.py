@@ -99,7 +99,8 @@ class StateManager:
            - 单独输出一段 100 字左右的本节关键情节摘要，用于存入长期记忆库。
            
         【输出格式要求】：
-        请严格使用以下格式分隔四个部分，不要输出多余的解释：
+        请严格使用以下格式分隔四个部分，不要输出多余的解释。
+        **注意：YAML 中的所有字符串值，如果包含 []、-、: 等符号，请务必用英文双引号 " 包裹。**
         
         ===SUMMARY===
         (在此处更新全局摘要文本)
@@ -151,22 +152,27 @@ class StateManager:
             # Save Characters
             if chars_content:
                 try:
-                    clean_chars = chars_content.replace("```yaml", "").replace("```", "").strip()
+                    clean_chars = self._sanitize_yaml(chars_content)
                     _ = yaml.safe_load(clean_chars) 
                     with open(self.character_state_path, "w", encoding="utf-8") as f:
                         f.write(clean_chars)
                 except Exception as e:
-                    print(f"⚠️ 角色状态YAML解析失败，跳过写入: {e}")
+                    print(f"⚠️ 角色状态YAML解析失败，已保存原始内容: {e}")
+                    # 即使解析失败保存下来也比丢失好
+                    with open(self.character_state_path, "w", encoding="utf-8") as f:
+                        f.write(chars_content)
 
             # Save Arcs
             if arcs_content:
                 try:
-                    clean_arcs = arcs_content.replace("```yaml", "").replace("```", "").strip()
+                    clean_arcs = self._sanitize_yaml(arcs_content)
                     _ = yaml.safe_load(clean_arcs)
                     with open(self.plot_arcs_path, "w", encoding="utf-8") as f:
                         f.write(clean_arcs)
                 except Exception as e:
-                    print(f"⚠️ 剧情线YAML解析失败，跳过写入: {e}")
+                    print(f"⚠️ 剧情线YAML解析失败，已保存原始内容: {e}")
+                    with open(self.plot_arcs_path, "w", encoding="utf-8") as f:
+                        f.write(arcs_content)
             
             # Save RAG Memory
             if memory_content:
@@ -180,3 +186,39 @@ class StateManager:
                     
         except Exception as e:
             print(f"⚠️ 解析状态响应时发生错误: {e}")
+
+    def _sanitize_yaml(self, text):
+        """
+        Attempts to clean and fix common YAML formatting errors from LLM output.
+        """
+        # 1. 去除 Markdown 代码块标记
+        text = text.replace("```yaml", "").replace("```", "").strip()
+        
+        lines = text.split('\n')
+        cleaned_lines = []
+        
+        for line in lines:
+            line_stripped = line.strip()
+            if not line_stripped or line_stripped.startswith('#'):
+                cleaned_lines.append(line)
+                continue
+                
+            # 2. 尝试修复 `Key: Value` 中 Value 包含特殊符号（如 [], -）但未加引号的情况
+            # 简单的 heuristic: 如果有一对冒号，且冒号后有内容，且内容没被引号包裹但包含特殊字符
+            if ":" in line:
+                key_part, val_part = line.split(":", 1)
+                val_stripped = val_part.strip()
+                
+                # 如果 Value 不为空，且不是列表项开头(-)，且不以引号开头
+                if val_stripped and not val_stripped.startswith("-") and not val_stripped.startswith('"') and not val_stripped.startswith("'"):
+                    # 如果包含 YAML 敏感字符 (LIST start '[', MAPPING start '{', COMMENT '#', etc in value context)
+                    # 为了安全起见，只要是以文本开头的，我们都尝试包裹引号（如果是纯数字/布尔值除外）
+                    if any(c in val_stripped for c in "[]{}#:,"):
+                         # 重新构建: 保持缩进 + key + : + "value"
+                         # 注意要处理原 value 里的引号转义
+                         safe_val = val_stripped.replace('"', '\\"')
+                         line = f'{key_part}: "{safe_val}"'
+            
+            cleaned_lines.append(line)
+            
+        return "\n".join(cleaned_lines)

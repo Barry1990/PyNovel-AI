@@ -14,7 +14,7 @@ from drivers.factory import get_driver
 
 def run_automation_loop():
     print("🚀 启动全自动小说生成引擎...")
-    FIXED_IDEA = "作恶多端的产品经理，在异世界赎罪" 
+    FIXED_IDEA = "作恶多端的产品经理，平日专门压榨程序员，给程序员提出各种无理需求，老天爷看不下去了，把他丢到异世界，变成了一个妓女，在异世界赎罪" 
     # FIXED_IDEA = None 
 
     loop_count = 0
