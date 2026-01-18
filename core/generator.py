@@ -1,6 +1,8 @@
 import os
 import re
 
+from core.state_manager import StateManager
+
 def generate_outline(llm, title, idea, chapter_count, sections_per_chapter, meta, novel_config):
     """阶段 1：根据用户描述生成详细大纲"""
     outlines_dir = "outlines"
@@ -148,6 +150,9 @@ def write_chapters_from_outline(llm, title, outline_text, meta, words_per_sectio
     if not os.path.exists(title):
         os.makedirs(title)
 
+    # 初始化状态管理器
+    state_manager = StateManager(title)
+
     details_str = ""
     for category, fields in meta.items():
         details_str += f"\n【{category}】\n"
@@ -157,7 +162,6 @@ def write_chapters_from_outline(llm, title, outline_text, meta, words_per_sectio
         else:
             details_str += f"{fields}\n"
 
-    history_summary = "故事刚开始。"
     chapter_blocks = re.split(r"(第\d+章：.*)", outline_text)
     
     chapter_id = 0
@@ -178,19 +182,18 @@ def write_chapters_from_outline(llm, title, outline_text, meta, words_per_sectio
         
         for j, mission in enumerate(sections, 1):
             file_path = os.path.join(chapter_dir, f"第{j:02d}节.txt")
-            summary_path = os.path.join(chapter_dir, f"第{j:02d}节_summary.txt")
             
             # 断点续传检查
             if os.path.exists(file_path):
                 print(f"检测到 {chapter_title} - 第 {j} 节 已存在，自动跳过。")
-                # 尝试加载历史摘要以维持后续章节的连贯性
-                if os.path.exists(summary_path):
-                    with open(summary_path, "r", encoding="utf-8") as fs:
-                        history_summary = fs.read()
                 continue
 
             print(f"正在根据大纲创作 {chapter_title} - 第 {j} 节...")
             
+            # 获取当前实时状态上下文 (Summary + Character State + Arcs + RAG Memory)
+            # 使用当前章节大纲作为查询 query
+            state_context = state_manager.get_context_prompt(llm=llm, current_query=current_chapter_plan)
+
             # --- Retry Loop for Safety/Content Blocks ---
             max_retries = 3
             current_try = 0
@@ -203,11 +206,11 @@ def write_chapters_from_outline(llm, title, outline_text, meta, words_per_sectio
                 【本章全局大纲与伏笔要求】：
                 {current_chapter_plan}
                 
+                【重要：实时世界状态 & 历史记忆回溯】：
+                {state_context}
+                
                 【创作核心背景】：
                 {details_str}
-                
-                【前情回顾】：
-                {history_summary}
                 
                 【本节任务】：
                 本节大纲要求：{mission}
@@ -215,6 +218,7 @@ def write_chapters_from_outline(llm, title, outline_text, meta, words_per_sectio
                 【高级写作指令】：
                 1. **执行伏笔埋设**：请仔细阅读上方【本章全局大纲】中的“伏笔/悬念任务”，如果本节的情节适合，请自然地埋下伏笔。不要生硬，要像“无意中提到”一样自然。
                 2. **黄金三章原则**：{"目前处于小说开端，请务必在结尾留下巨大的悬念或转折，钩住读者继续阅读！" if chapter_id <= 3 else "保持冲突的张力。"}
+                3. **利用历史记忆**：如果上方【历史相关事件回溯】中有相关内容，请巧妙地在文中呼应，增强史诗感和连贯性。
                 
                 【注意】：这是该小说的第 {chapter_id} 章第 {j} 节，请在内容中确保逻辑连贯。
                 
@@ -249,21 +253,13 @@ def write_chapters_from_outline(llm, title, outline_text, meta, words_per_sectio
             # End of Retry Loop check
             if content.startswith("⚠️"):
                 print(f"\n❌ [正文创作失败] {chapter_title} 第 {j} 节在 {max_retries} 次尝试后仍然失败。跳过本节。")
-                # Create a placeholder file to prevent loop stuck? Or just return? 
-                # Better to write a placeholder ensuring process continues
                 content = f"（本节内容因反复触发安全策略生成失败，请人工介入补全。错误信息：{content}）"
             
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(content)
                 
-            # 生成并保存摘要，用于下一节的上下文
-            history_summary = llm.generate_content(f"请用300字总结本节（{chapter_title} 第{j}节）关键进展：\n{content}")
-            if history_summary.startswith("⚠️"):
-                 # 如果摘要失败，记录警告但继续（或根据需要停止）
-                 print(f"⚠️ [摘要生成警告] {chapter_title} 第 {j} 节摘要失败，后续章节可能缺乏连贯性。")
-                 history_summary = "摘要获取失败。"
-            
-            with open(summary_path, "w", encoding="utf-8") as fs:
-                fs.write(history_summary)
+            # --- State Update ---
+            # 使用 StateManager 更新全局摘要、角色状态和伏笔
+            state_manager.update_state(llm, content)
                 
             print(f"第 {chapter_id} 章第 {j} 节完成。")

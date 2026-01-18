@@ -48,6 +48,9 @@ config.yaml
 !/.gitignore
 !/README.md
 !/requirements.txt
+!/auto_runner.py
+!/.env.example
+!/tests/
 
 # Do not track specific configurations in configs/ except if intended
 # (Optional: uncomment if you only want to track config.example.yaml)

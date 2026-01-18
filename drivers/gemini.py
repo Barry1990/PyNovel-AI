@@ -54,4 +54,18 @@ class GeminiDriver(BaseDriver):
             error_msg = str(e)
             if "404" in error_msg:
                 return f"⚠️ [LLM 错误] 找不到模型 '{self.model_name}' (404)。请检查 config.yaml 中的 model_name 是否正确，或代理是否支持该模型。"
-            return f"⚠️ [LLM 错误] 未知异常: {error_msg}"
+    def embed_content(self, text: str) -> list[float]:
+        try:
+            import google.generativeai as genai
+            # 使用 text-embedding-004 作为默认模型，这是一个很好的通用模型
+            model = "models/text-embedding-004"
+            result = genai.embed_content(
+                model=model,
+                content=text,
+                task_type="retrieval_document", # 或者 retrieval_query，但在我们场景下 document 通用性更好
+                title="Novel Context"
+            )
+            return result['embedding']
+        except Exception as e:
+            print(f"⚠️ [Embedding Error] Gemini 嵌入生成失败: {e}")
+            return []

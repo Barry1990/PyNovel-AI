@@ -24,4 +24,14 @@ class OpenAIDriver(BaseDriver):
         except Exception as e:
             error_msg = f"⚠️ [OpenAI 错误] {str(e)}"
             log_ai_interaction(prompt, error_msg, None)
-            return error_msg
+    def embed_content(self, text: str) -> list[float]:
+        try:
+            # 默认使用 text-embedding-3-small
+            response = self.client.embeddings.create(
+                input=text,
+                model="text-embedding-3-small"
+            )
+            return response.data[0].embedding
+        except Exception as e:
+            print(f"⚠️ [Embedding Error] OpenAI 嵌入生成失败: {e}")
+            return []
