@@ -1,111 +1,72 @@
-# PyNovel-AI
+# PyNovel-AI 🚀
 
-PyNovel-AI 是一个基于 LLM（大语言模型）的自动化长篇小说创作工具。它通过“迭代生成”与“上下文持久化”技术，能够帮助你从一个简单的创意出发，构思数万甚至数十万字的长篇故事。
+> **全自动、具备长期记忆的 AI 小说生成引擎**
+> *Auto-generate novels with Long-term Memory & State Tracking*
 
-## 🌟 核心特性
+PyNovel-AI 是一个轻量级但强大的 AI 小说创作系统。它不仅仅是调用 LLM 写作，更内置了 **RAG 向量记忆** 和 **世界状态追踪**，确保长篇连载逻辑连贯，伏笔必收。
 
-- **分阶段构思**：采用“分阶段生成”模式。先生成全书大纲，再细化为章节小节，最后逐节创作正文，确保长篇逻辑不崩坏。
-- **智能断点续传**：
-  - **大纲复用**：如果由于网络或其他原因中断，重新运行可直接读取已有大纲。
-  - **章节续写**：自动识别已生成的章节并跳过，无缝衔接未完成的任务。
-- **上下文持久化（Summary-based Continuity）**：
-  - 每创作完一个小节，系统会自动生成并保存该节的**摘要（Summary）**。
-  - 续写时，系统会读取前文摘要作为 LLM 的背景参考，保证故事逻辑的连贯性，同时节省 Token。
-- **AI 驱动的配置文件生成**：提供 `config_generator.py` 工具，只需提供简单想法，AI 即可为你生成完整的角色、背景及风格设定。
-- **AI 小说灵感生成器**：提供 `inspiration_generator.py` 工具，可随机或指定题材生成多个小说灵感（包含标题、核心梗、大纲等），打破创作瓶颈。
-- **针对创作優化的安全设置**：
-  - 特别针对 Gemini 驱动进行了优化，默认开启宽松的安全阈值（`BLOCK_NONE`），适合创意文学创作。
-  - 内置“去敏感化”提示策略，通过文学化叙术规避 AI 的硬性拦截。
-- **灵活的批处理（Batching）**：支持自定义大纲生成步长（默认 10 章），大幅提升构思效率。
-- **多模型驱动**：支持 Gemini 及所有与其 API 兼容的模型。
+## ✨ 核心特性
 
-## 📁 目录结构
+*   **🧠 长期记忆 (RAG)**：内置轻量级向量数据库，自动记忆百章前的伏笔与设定，告别“AI 健忘症”。
+*   **🌍 动态世界状态**：实时追踪角色状态（HP、位置、物品）与剧情线（未填的坑），自动更新并注入写作上下文。
+*   **⚙️ 全自动闭环**：`auto_runner` 支持从创意 → 配置 → 大纲 → 正文 → 反思复盘的无人值守循环。
+*   **🔌 多模型支持**：原生支持 **Google Gemini** (推荐) 与 **OpenAI** 协议模型。
+*   **🛡️ 鲁棒性设计**：包含敏感内容自动修正、逻辑一致性自检及断点续传功能。
+
+## � 项目结构
 
 ```text
 PyNovel-AI/
-├── configs/            # 存放各种小说的 YAML 配置文件
-├── outlines/           # 存放生成的小说详细大纲 (Markdown)
-├── core/               # 核心逻辑
-│   ├── config.py       # 配置加载
-│   └── generator.py    # 大纲与正文生成引擎
-├── drivers/            # LLM 驱动引擎
-│   ├── base.py         # 驱动基类
-│   └── gemini.py       # Gemini 驱动实现
-├── tools/              # 辅助工具
-│   ├── config_generator.py     # AI 配置文件生成器
-│   └── inspiration_generator.py # AI 小说灵感生成器
-├── inspirations/       # 存放生成的灵感列表
-├── main.py             # 项目主入口
-├── config.example.yaml # 配置文件模板
-├── requirements.txt    # 依赖说明
-└── .env                # (可选) 用于存储 API Key 的环境变量文件
+├── auto_runner.py        # 🚀 [入口] 一键启动自动化循环
+├── configs/              # ⚙️ 配置文件仓库
+├── core/
+│   ├── generator.py      # 核心写作逻辑
+│   ├── state_manager.py  # 状态与记忆管理器
+│   └── rag_engine.py     # 轻量级向量检索引擎
+├── drivers/              # LLM 驱动 (Gemini, OpenAI)
+├── novels/               # 📖 生成的小说 (含记忆库 memory.json)
+├── tools/                # 辅助工具 (创意生成、配置生成)
+└── .env                  # API 密钥配置
 ```
 
-## 🚀 快速上手
+## ⚡️ 快速启动
 
-### 1. 环境准备
+1.  **环境准备**
+    ```bash
+    git clone https://github.com/YourName/PyNovel-AI.git
+    cd PyNovel-AI
+    pip install -r requirements.txt
+    ```
 
-确保安装了 Python 3.8+，并安装依赖：
+2.  **配置密钥**
+    复制 `.env.example` 为 `.env` 并填入密钥：
+    ```ini
+    LLM_PROVIDER=gemini  # 或 openai
+    LLM_API_KEY=your_api_key_here
+    ```
 
-```bash
-pip install -r requirements.txt
+3.  **运行**
+    *   **全自动模式**（推荐）：
+        ```bash
+        python auto_runner.py
+        # 修改 auto_runner.py 中的 FIXED_IDEA 变量可指定题材
+        ```
+    *   **手动模式**：
+        ```bash
+        python main.py
+        ```
+
+## 🛠️ 进阶配置
+
+在 `configs/` 下可创建通过 YAML 定义的精细化小说配置，或通过 `auto_runner` 自动生成。
+
+```yaml
+# 示例配置片段
+title: "我的修仙传"
+genre: "玄幻"
+model_name: "gemini-2.0-flash-exp"
+world_view: "末法时代，灵气复苏..."
 ```
 
-或者手动安装主要依赖：
-
-```bash
-pip install -U google-generativeai openai pyyaml python-dotenv
-```
-
-### 2. 配置 API Key
-
-你可以选择以下任一方式：
-- 在项目根目录创建 `.env` 文件：`GEMINI_API_KEY=你的KEY`
-- 或者在运行程序时根据提示输入。
-
-### 3. (可选) 获取灵感
-
-如果你暂时没有具体的想法，可以使用灵感生成器：
-```bash
-python tools/inspiration_generator.py
-```
-输入你感兴趣的题材（或者留空随机），AI 会为你生成一批带有核心梗和简要大纲的灵感。你可以从中挑选一个，作为下一步配置生成的输入。
-
-### 4. 生成小说配置
-
-运行 AI 配置生成器：
-```bash
-python tools/config_generator.py
-```
-根据提示输入你的小说创意（例如：“一个关于星际航行与禁忌之恋的故事”），系统会为你生成一个类似 `config.小说名称.yaml` 的文件。
-
-### 5. 开始创作
-
-运行主程序：
-```bash
-python main.py
-```
-选择你刚才生成的配置文件，程序将开始：
-1. 生成大纲（保存在 `{标题}_outline.md`）。
-2. 让用户确认大纲。
-3. 确认后，开始逐章逐节创作正文（保存在以小说命名的文件夹中）。
-
-## ⚙️ 配置说明 (`config.yaml`)
-
-| 字段 | 说明 |
-| :--- | :--- |
-| `provider` | LLM 提供商，目前主要支持 `gemini`。 |
-| `model_name` | 使用的模型名称，建议使用 `gemini-1.5-flash` 或 `gemini-pro`。 |
-| `batch_size` | 每次生成大纲的章节数量。设置大可提升速度，设置小可提升精细度。 |
-| `words_per_section` | 每一小节计划创作的字数。 |
-| `details` | 包含角色设定、背景设定、文风要求等详细信息，对创作质量影响巨大。 |
-
-## 💡 创作技巧
-
-- **避开 AI 拦截**：如果你的内容包含敏感或成人元素，请在 `details` 中明确要求 AI 使用“文学化描写”、“艺术化隐喻”，避开直白的生理性描写。
-- **手动微调大纲**：大纲生成后，你可以手动编辑 `{标题}_outline.md` 文件。重新运行程序时选择“使用已有大纲”，程序会根据你修改后的大纲进行创作。
-- **清理进度**：如果你想彻底重写某一节，只需删除对应的 `.txt` 文件和 `_summary.txt` 文件，重新运行即可。
-
-## 📄 许可证
-
-MIT License
+---
+*Powered by Python & LLMs.*
